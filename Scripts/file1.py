@@ -1,12 +1,25 @@
+import os
+import sys
+
 import mysql.connector as connector
 from getpass import getpass
 
+VARIABLES_REQUERIDAS = ["DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME"]
+
+faltantes = [v for v in VARIABLES_REQUERIDAS if not os.environ.get(v)]
+if faltantes:
+    sys.exit(
+        "Faltan variables de entorno: " + ", ".join(faltantes) + ".\n"
+        "Copiá .env.example a .env, completalo y cargalo con:\n"
+        "  set -a; source .env; set +a"
+    )
+
 conexion = connector.connect(
-    host="127.0.0.1",
-    port=3306,
-    user="jeremias",
-    password="jeremias!",
-    database="little_lemon_restaurante",
+    host=os.environ["DB_HOST"],
+    port=int(os.environ["DB_PORT"]),
+    user=os.environ["DB_USER"],
+    password=os.environ["DB_PASSWORD"],
+    database=os.environ["DB_NAME"],
 )
 
 print(conexion.is_connected())
