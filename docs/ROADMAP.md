@@ -1,7 +1,7 @@
 # Roadmap (un incremento = un commit chico)
 
-- [ ] 0. CLAUDE.md y ROADMAP
-- [ ] 1. Sacar credenciales del código (.env, .gitignore)
+- [x] 0. CLAUDE.md y ROADMAP
+- [x] 1. Sacar credenciales del código (.env, .gitignore)
 - [ ] 2. README básico
 - [ ] 3. docker-compose con MySQL (schema + datos)
 - [ ] 4. Script de verificación de conteos (100 / 240 / 680)
@@ -16,7 +16,7 @@
 - [ ] 13. Dashboard y cierre
 
 ## Problemas conocidos del capstone
-- Credenciales en Scripts/file1.py
+- ~~Credenciales en Scripts/file1.py~~ (resuelto en PR #2)
 - Sin updated_at en ninguna tabla (bloquea la carga incremental)
 - CancelOrder y CancelBooking hacen DELETE físico
 - Orders.Quantity y TotalCost son desnormalizados (triggers)
