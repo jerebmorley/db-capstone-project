@@ -38,6 +38,7 @@ database/
   procedures/        Stored procedures on their own (also in the schema dump)
 scripts/
   file1.py           Python example: connects to MySQL and runs a few queries
+  verify_counts.py   Checks row counts and order totals after loading
   script1-4.sql      Capstone exercises: views, procedures, prepared statements
 data/                Original course data (.xlsx)
 models/              MySQL Workbench model (.mwb)
@@ -89,6 +90,17 @@ docker-compose.yml   Local MySQL 8.4 loaded with schema and data
    ```
 
    If a variable is missing, the script exits with a message listing it.
+
+4. Verify the load. The script checks the row count of all 14 tables and
+   that every order's `Quantity` and `TotalCost` match its `OrderDetails`.
+   It prints `OK`/`FAIL` per check and exits with code 0 only if all pass:
+
+   ```bash
+   .venv/bin/python scripts/verify_counts.py
+   ```
+
+   The expected counts are those of the sample data (100 customers,
+   240 orders, 680 order lines, …).
 
 ## Known limitations
 
