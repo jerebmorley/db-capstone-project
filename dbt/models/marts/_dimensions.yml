@@ -1,0 +1,51 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: Clientes, SCD2 (una fila por versión). Los hechos se unen por customer_key.
+    data_tests:
+      - scd2_integrity:
+          arguments:
+            entity_column: customer_id
+    columns:
+      - name: customer_key
+        description: Clave surrogada de la versión (md5 de customer_id y valid_from).
+        data_tests: [unique, not_null]
+      - name: customer_id
+        data_tests: [not_null]
+
+  - name: dim_menu_products
+    description: Productos, SCD2 (una fila por versión; list_price es el precio de lista vigente).
+    data_tests:
+      - scd2_integrity:
+          arguments:
+            entity_column: product_id
+    columns:
+      - name: product_key
+        data_tests: [unique, not_null]
+      - name: product_id
+        data_tests: [not_null]
+
+  - name: dim_menus
+    description: Menús con su composición (SCD1).
+    columns:
+      - name: menu_id
+        data_tests: [unique, not_null]
+
+  - name: dim_staff
+    description: Personal con su rol (SCD1), sin salario.
+    columns:
+      - name: staff_id
+        data_tests: [unique, not_null]
+
+  - name: dim_restaurant_tables
+    description: Mesas y su capacidad (SCD1).
+    columns:
+      - name: table_number
+        data_tests: [unique, not_null]
+
+  - name: dim_date
+    description: Un día por fila entre el primer y el último pedido o reserva.
+    columns:
+      - name: date_key
+        data_tests: [unique, not_null]

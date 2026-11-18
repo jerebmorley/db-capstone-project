@@ -19,3 +19,11 @@ models:
       # Una vista por tabla de raw: versión vigente, nombres en snake_case.
       +schema: staging
       +materialized: view
+    intermediate:
+      # Lógica reutilizable entre staging y marts (versiones SCD2, estado de pedidos).
+      +schema: intermediate
+      +materialized: view
+    marts:
+      # Estrella para el negocio: se calcula una vez por dbt build.
+      +schema: marts
+      +materialized: table

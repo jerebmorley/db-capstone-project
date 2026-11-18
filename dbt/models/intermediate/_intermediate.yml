@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: int_customer_versions
+    description: Versiones de cada cliente con rango de validez SCD2 [valid_from, valid_to).
+    data_tests:
+      - scd2_integrity:
+          arguments:
+            entity_column: customer_id
+
+  - name: int_menu_product_versions
+    description: Versiones de cada producto con rango de validez SCD2 [valid_from, valid_to).
+    data_tests:
+      - scd2_integrity:
+          arguments:
+            entity_column: product_id
+
+unit_tests:
+  - name: scd2_arma_rangos_contiguos_desde_1900
+    description: >
+      Tres versiones de un cliente dan los rangos [1900, v2), [v2, v3) y
+      [v3, 9999), y solo la última queda vigente. Una versión repetida (mismo
+      updatedat) se cuenta una sola vez, y de dos versiones en el mismo
+      segundo queda la última, vigente desde el inicio de ese segundo.
+    model: int_customer_versions
+    given:
+      - input: source('raw', 'customers')
+        rows:
+          - {customerid: 1, contactnumber: "111", updatedat: "2026-01-01 10:00:00", _batch_id: 1}
+          - {customerid: 1, contactnumber: "222", updatedat: "2026-02-01 10:00:00", _batch_id: 2}
+          - {customerid: 1, contactnumber: "222", updatedat: "2026-02-01 10:00:00", _batch_id: 3}
+          - {customerid: 1, contactnumber: "333", updatedat: "2026-03-01 10:00:00.200000", _batch_id: 4}
+          - {customerid: 1, contactnumber: "444", updatedat: "2026-03-01 10:00:00.700000", _batch_id: 5}
+    expect:
+      rows:
+        - {customer_id: 1, contact_number: "111", valid_from: "1900-01-01 00:00:00", valid_to: "2026-02-01 10:00:00", is_current: false}
+        - {customer_id: 1, contact_number: "222", valid_from: "2026-02-01 10:00:00", valid_to: "2026-03-01 10:00:00", is_current: false}
+        - {customer_id: 1, contact_number: "444", valid_from: "2026-03-01 10:00:00", valid_to: "9999-12-31 00:00:00", is_current: true}
