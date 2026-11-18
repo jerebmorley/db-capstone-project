@@ -2,7 +2,7 @@
 
 - [x] 0. CLAUDE.md y ROADMAP
 - [x] 1. Sacar credenciales del código (.env, .gitignore)
-- [ ] 2. README básico
+- [x] 2. README básico
 - [ ] 3. docker-compose con MySQL (schema + datos)
 - [ ] 4. Script de verificación de conteos (100 / 240 / 680)
 - [ ] 5. Agregar updated_at y soft delete (ADR-002)
