@@ -8,8 +8,15 @@ I am turning it, in small increments, into a data engineering portfolio
 project: **MySQL (OLTP) → PostgreSQL (raw / staging / marts) with dbt,
 orchestrated by Airflow**.
 
-> **Current status:** only the MySQL capstone exists today. The pipeline is
-> planned, not built yet. Progress is tracked in [docs/ROADMAP.md](docs/ROADMAP.md).
+> **Current status:** the MySQL source and the extraction into the PostgreSQL
+> `raw` layer work. dbt and Airflow are next. Progress is tracked in
+> [docs/ROADMAP.md](docs/ROADMAP.md).
+
+```
+MySQL (OLTP)  ── scripts/extract_mysql_to_raw.py ──▶  PostgreSQL
+little_lemon_restaurante   (incremental, UpdatedAt)    raw.*  (append-only copy)
+                                                       staging.*, marts.*  (dbt, planned)
+```
 
 ## Data model
 
@@ -50,6 +57,8 @@ database/
   procedures/        Capstone stored procedures (v0, also in the schema dump)
   migrations/        Numbered schema changes applied after the dumps
 scripts/
+  db_connections.py  MySQL and PostgreSQL connections from environment variables
+  extract_mysql_to_raw.py  Incremental extraction MySQL → PostgreSQL raw
   explore_database.py  Python example: connects to MySQL and runs a few queries
   verify_load.py     Checks row counts and order totals after loading
   generate_synthetic_data.py  Adds ~4.4 M reproducible synthetic rows
@@ -58,9 +67,10 @@ data/                Original course data (.xlsx)
 models/              MySQL Workbench model (.mwb)
 tableau/             Tableau workbook (.twbx)
 screenshots/         ER diagram
-docker/              Container setup (MySQL init scripts)
+docker/              Container setup (MySQL and PostgreSQL init scripts)
 docs/                Roadmap and architecture decisions (adr/)
-docker-compose.yml   Local MySQL 8.4 loaded with schema and data
+docker-compose.yml   Local MySQL 8.4 (source) and PostgreSQL 18 (warehouse)
+requirements.txt     Pinned Python dependencies
 ```
 
 ## Running it locally
@@ -74,17 +84,18 @@ docker-compose.yml   Local MySQL 8.4 loaded with schema and data
    cp .env.example .env
    ```
 
-2. Start MySQL. On the first start it loads the capstone dumps
-   (`docker/mysql/initdb/01-load-capstone-dump.sh`) and then applies the
-   migrations (`02-apply-migrations.sh`). It is ready when the container
-   shows as `healthy`:
+2. Start MySQL and PostgreSQL. On the first start, MySQL loads the capstone
+   dumps (`docker/mysql/initdb/01-load-capstone-dump.sh`) and applies the
+   migrations (`02-apply-migrations.sh`), and PostgreSQL creates the `raw`
+   and `meta` schemas (`docker/postgres/initdb/01_create_raw_schema.sql`).
+   They are ready when both containers show as `healthy`:
 
    ```bash
    docker compose up -d --wait
    ```
 
-   MySQL listens on `127.0.0.1:3307` (not 3306, so it does not clash with a
-   local MySQL). The loader strips the `DEFINER=jeremias@localhost` clauses
+   MySQL listens on `127.0.0.1:3307` and PostgreSQL on `127.0.0.1:5434`, so
+   they do not clash with local servers. The MySQL loader strips the `DEFINER=jeremias@localhost` clauses
    from the schema dump, so triggers and procedures belong to the user that
    creates them.
 
@@ -96,11 +107,11 @@ docker-compose.yml   Local MySQL 8.4 loaded with schema and data
    docker compose down -v
    ```
 
-3. Install the driver and run the example script:
+3. Install the dependencies and run the example script:
 
    ```bash
    python3 -m venv .venv
-   .venv/bin/pip install mysql-connector-python
+   .venv/bin/pip install -r requirements.txt
    set -a; source .env; set +a
    .venv/bin/python scripts/explore_database.py
    ```
@@ -135,12 +146,25 @@ docker-compose.yml   Local MySQL 8.4 loaded with schema and data
    quick run. The generator refuses to run twice on the same database; to
    start over, recreate it with `docker compose down -v`.
 
+6. Extract MySQL into the PostgreSQL `raw` schema. Each run brings only the
+   rows whose `UpdatedAt` changed since the previous one, appends them to
+   `raw.<table>` and records the run in `meta.extract_runs`
+   ([ADR-004](docs/adr/004-incremental-extraction-to-raw.md)):
+
+   ```bash
+   .venv/bin/python scripts/extract_mysql_to_raw.py
+   ```
+
+   The first run copies everything (4.4 M rows in about 40 s with the
+   synthetic data); a run without changes brings 0 rows. Changes from the
+   last 30 seconds wait for the next run (`--lag-seconds`), so transactions
+   still in progress are not missed.
+
 ## Known limitations
 
 - `scripts/script1.sql` and `scripts/script2.sql` use `USE LittleLemonDM`,
   but the database is now called `little_lemon_restaurante`, so they fail as
   they are.
-- There is no `requirements.txt` yet.
 - The data contains personal-looking fields (customer emails and phone
   numbers, staff salaries). It comes from the course dataset.
 - More capstone issues that the pipeline work will fix are listed in
