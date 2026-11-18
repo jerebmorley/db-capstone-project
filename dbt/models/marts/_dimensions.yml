@@ -3,6 +3,10 @@ version: 2
 models:
   - name: dim_customers
     description: Clientes, SCD2 (una fila por versión). Los hechos se unen por customer_key.
+    config:
+      indexes:
+        - columns: [customer_key]
+          unique: true
     data_tests:
       - scd2_integrity:
           arguments:

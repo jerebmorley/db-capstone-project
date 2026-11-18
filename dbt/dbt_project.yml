@@ -16,14 +16,19 @@ flags:
 models:
   little_lemon:
     staging:
-      # Una vista por tabla de raw: versión vigente, nombres en snake_case.
+      # Una tabla por tabla de raw: versión vigente, nombres en snake_case.
+      # Tablas y no vistas: se deduplica una vez por build (ADR-008).
       +schema: staging
-      +materialized: view
+      +materialized: table
+      +post-hook: "analyze {{ this }}"
     intermediate:
       # Lógica reutilizable entre staging y marts (versiones SCD2, estado de pedidos).
       +schema: intermediate
-      +materialized: view
+      +materialized: table
+      +post-hook: "analyze {{ this }}"
     marts:
       # Estrella para el negocio: se calcula una vez por dbt build.
+      # ANALYZE al crear cada tabla: si no, quedan sin estadísticas (ADR-008).
       +schema: marts
       +materialized: table
+      +post-hook: "analyze {{ this }}"

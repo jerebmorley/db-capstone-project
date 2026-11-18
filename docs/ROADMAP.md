@@ -12,7 +12,7 @@
 - [x] 9. dbt staging
 - [x] 10. dbt marts en estrella + SCD2
 - [x] 11. Airflow
-- [ ] 12. Medición con EXPLAIN ANALYZE
+- [x] 12. Medición con EXPLAIN ANALYZE
 - [ ] 13. Dashboard y cierre
 
 ## Problemas conocidos del capstone

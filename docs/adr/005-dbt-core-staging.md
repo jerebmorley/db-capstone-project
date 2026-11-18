@@ -1,6 +1,7 @@
 # ADR-005: dbt Core v1 para la capa staging
 
-- **Estado:** aceptada
+- **Estado:** aceptada; el punto 3 (staging como vistas) lo reemplaza el
+  [ADR-008](008-materialize-staging-and-index-marts.md)
 - **Fecha:** 2026-11-18
 
 ## Contexto

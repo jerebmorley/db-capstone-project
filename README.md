@@ -80,6 +80,7 @@ docs/                Roadmap and architecture decisions (adr/)
 docker-compose.yml   Local MySQL 8.4 (source) and PostgreSQL 18 (warehouse)
 requirements.txt     Pinned Python dependencies (requirements-dev.txt adds pytest)
 tests/               Integration tests (pytest.ini configures them)
+benchmarks/          Warehouse benchmark queries (see docs/performance.md)
 ```
 
 ## Running it locally
@@ -169,18 +170,19 @@ tests/               Integration tests (pytest.ini configures them)
    last 30 seconds wait for the next run (`--lag-seconds`), so transactions
    still in progress are not missed.
 
-7. Build the dbt `staging` layer and run its data tests. Each `stg_*` view
+7. Build the dbt `staging` layer and run its data tests. Each `stg_*` table
    keeps the latest version of every row in `raw`, with snake_case names
-   ([ADR-005](docs/adr/005-dbt-core-staging.md)):
+   ([ADR-005](docs/adr/005-dbt-core-staging.md),
+   [ADR-008](docs/adr/008-materialize-staging-and-index-marts.md)):
 
    ```bash
    .venv/bin/dbt build --project-dir dbt --profiles-dir dbt
    ```
 
-   It creates 14 views in the `staging` schema and runs 51 tests (keys,
+   It creates 14 tables in the `staging` schema and runs 51 tests (keys,
    relationships, accepted values, order totals and a unit test of the
-   deduplication), in about 16 s with the synthetic data. It uses dbt Core
-   v1: dbt v2 does not list PostgreSQL among its adapters yet.
+   deduplication). It uses dbt Core v1: dbt v2 does not list PostgreSQL among
+   its adapters yet.
 
    The same command builds the `marts` star schema
    ([ADR-006](docs/adr/006-star-schema-and-scd2-from-raw.md)):
@@ -198,7 +200,7 @@ tests/               Integration tests (pytest.ini configures them)
    `dim_customers` and `dim_menu_products` are SCD2: one row per version,
    built from the versions kept in `raw`, and every fact points to the
    version that was valid when the event happened. With the synthetic data,
-   the full `dbt build` (122 tests) takes about 34 s. Example:
+   the full `dbt build` (122 tests) takes about 40 s. Example:
 
    ```sql
    SELECT d.year, d.quarter, f.channel,
@@ -234,6 +236,18 @@ and then `dbt_build` (1 retry). It uses `LocalExecutor` and lives in the
 Airflow uses about 850 MB of RAM. Stop it with
 `docker compose --profile airflow stop`. The extractor also takes a
 PostgreSQL advisory lock, so a manual run never overlaps with the DAG.
+
+## Performance
+
+Measured with `EXPLAIN ANALYZE` on the 4.4 M-row dataset
+([docs/performance.md](docs/performance.md)): materializing staging and
+intermediate as tables cut the test time of `dbt build` from ~100 s to ~30 s,
+and an index made the per-customer lookup go from ~70 ms to 0.1 ms. The
+dashboard-style aggregations run in 25–410 ms. To repeat the benchmark:
+
+```bash
+.venv/bin/python scripts/benchmark_warehouse.py --label my_run
+```
 
 ## Running the tests
 

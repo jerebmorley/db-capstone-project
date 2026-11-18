@@ -3,6 +3,10 @@ version: 2
 models:
   - name: fct_orders
     description: Pedidos, una fila por pedido.
+    config:
+      # Para consultas puntuales por cliente (historial de un cliente).
+      indexes:
+        - columns: [customer_id]
     columns:
       - name: order_id
         data_tests: [unique, not_null]
