@@ -1,0 +1,14 @@
+# Conexión al warehouse. No tiene secretos: todo sale de las variables PG_*
+# del entorno (set -a; source .env; set +a), por eso se versiona en el repo.
+little_lemon:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PG_HOST') }}"
+      port: "{{ env_var('PG_PORT') | as_number }}"
+      dbname: "{{ env_var('PG_DB') }}"
+      user: "{{ env_var('PG_USER') }}"
+      password: "{{ env_var('PG_PASSWORD') }}"
+      schema: staging
+      threads: 4

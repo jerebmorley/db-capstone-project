@@ -1,0 +1,21 @@
+# Proyecto dbt de Little Lemon: transforma raw (PostgreSQL) en staging y marts.
+name: little_lemon
+version: "1.0.0"
+profile: little_lemon
+require-dbt-version: [">=1.10.0", "<3.0.0"]
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+clean-targets: ["target"]
+
+flags:
+  # dbt envía estadísticas de uso anónimas por defecto: se desactivan.
+  send_anonymous_usage_stats: false
+
+models:
+  little_lemon:
+    staging:
+      # Una vista por tabla de raw: versión vigente, nombres en snake_case.
+      +schema: staging
+      +materialized: view

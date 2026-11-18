@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Copia append-only de MySQL cargada por scripts/extract_mysql_to_raw.py
+      (ADR-004). Cada cambio en el origen es una fila nueva.
+    schema: raw
+    tables:
+      - name: cuisines
+      - name: customers
+      - name: deliverystatuses
+      - name: menucategories
+      - name: menuitems
+      - name: menuproducts
+      - name: menus
+      - name: orderdeliveryhistory
+      - name: orderdetails
+      - name: orders
+      - name: reservations
+      - name: restauranttables
+      - name: staff
+      - name: staffroles

@@ -1,2 +1,4 @@
 mysql-connector-python==26.10.0
 psycopg[binary]==3.3.9
+dbt-core==1.12.7
+dbt-postgres==1.11.0

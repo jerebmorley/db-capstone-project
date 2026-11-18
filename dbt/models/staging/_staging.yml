@@ -1,0 +1,209 @@
+version: 2
+
+models:
+  - name: stg_cuisines
+    description: Tipos de cocina del menú.
+    columns:
+      - name: cuisine
+        data_tests: [unique, not_null]
+
+  - name: stg_customers
+    description: Clientes del restaurante.
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]
+      - name: email
+        data_tests: [unique, not_null]
+
+  - name: stg_delivery_statuses
+    description: Estados posibles de un pedido.
+    columns:
+      - name: delivery_status_id
+        data_tests: [unique, not_null]
+      - name: status_name
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [Pendiente, En preparacion, Listo, En camino, Entregado, Cancelado]
+
+  - name: stg_menu_categories
+    description: Categorías de producto.
+    columns:
+      - name: category_id
+        data_tests: [unique, not_null]
+
+  - name: stg_menu_items
+    description: Composición de cada menú (desertname de origen pasa a dessert_name).
+    columns:
+      - name: menu_items_id
+        data_tests: [unique, not_null]
+
+  - name: stg_menu_products
+    description: Productos que se pueden pedir, con su precio.
+    columns:
+      - name: product_id
+        data_tests: [unique, not_null]
+      - name: category_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_menu_categories')
+                field: category_id
+      - name: cuisine
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_cuisines')
+                field: cuisine
+
+  - name: stg_menus
+    description: Menús ofrecidos.
+    columns:
+      - name: menu_id
+        data_tests: [unique, not_null]
+      - name: menu_items_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_menu_items')
+                field: menu_items_id
+      - name: cuisine
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_cuisines')
+                field: cuisine
+
+  - name: stg_order_delivery_history
+    description: Eventos de estado de cada pedido, incluidas las cancelaciones (ADR-002).
+    columns:
+      - name: history_id
+        data_tests: [unique, not_null]
+      - name: order_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: delivery_status_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_delivery_statuses')
+                field: delivery_status_id
+
+  - name: stg_order_details
+    description: Líneas de cada pedido.
+    columns:
+      - name: order_detail_id
+        data_tests: [unique, not_null]
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: product_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_menu_products')
+                field: product_id
+
+  - name: stg_orders
+    description: Pedidos; quantity y total_cost los calculan triggers en MySQL.
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+      - name: menu_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_menus')
+                field: menu_id
+      - name: reservation_id
+        description: Nulo en pedidos de delivery.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_reservations')
+                field: reservation_id
+      - name: staff_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_staff')
+                field: staff_id
+
+  - name: stg_reservations
+    description: Reservas de mesa.
+    columns:
+      - name: reservation_id
+        data_tests: [unique, not_null]
+      - name: customer_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+      - name: table_number
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_restaurant_tables')
+                field: table_number
+      - name: reservation_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [Confirmada, Cancelada, Completada]
+
+  - name: stg_restaurant_tables
+    description: Mesas del salón y su capacidad.
+    columns:
+      - name: table_number
+        data_tests: [unique, not_null]
+
+  - name: stg_staff
+    description: Personal. Incluye salario, un dato sensible.
+    columns:
+      - name: staff_id
+        data_tests: [unique, not_null]
+      - name: role_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_staff_roles')
+                field: role_id
+
+  - name: stg_staff_roles
+    description: Roles del personal.
+    columns:
+      - name: role_id
+        data_tests: [unique, not_null]
+
+unit_tests:
+  - name: stg_customers_se_queda_con_la_version_vigente
+    description: >
+      Con dos versiones del mismo cliente en raw, staging devuelve solo la de
+      mayor updatedat; con updatedat empatado, desempata el _batch_id mayor.
+    model: stg_customers
+    given:
+      - input: source('raw', 'customers')
+        rows:
+          - {customerid: 1, fullname: Ana, contactnumber: "111", email: a@example.test, updatedat: "2026-01-01 10:00:00", _batch_id: 1}
+          - {customerid: 1, fullname: Ana, contactnumber: "222", email: a@example.test, updatedat: "2026-01-02 10:00:00", _batch_id: 2}
+          - {customerid: 2, fullname: Bruno, contactnumber: "333", email: b@example.test, updatedat: "2026-01-01 10:00:00", _batch_id: 1}
+          - {customerid: 2, fullname: Bruno, contactnumber: "444", email: b@example.test, updatedat: "2026-01-01 10:00:00", _batch_id: 3}
+    expect:
+      rows:
+        - {customer_id: 1, contact_number: "222"}
+        - {customer_id: 2, contact_number: "444"}

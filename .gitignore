@@ -24,3 +24,8 @@ Thumbs.db
 
 # Salidas locales de scripts (conteos esperados del generador, etc.)
 generated/
+
+# Artefactos que genera dbt en cada corrida
+dbt/target/
+dbt/logs/
+dbt/.user.yml

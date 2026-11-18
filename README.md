@@ -8,14 +8,17 @@ I am turning it, in small increments, into a data engineering portfolio
 project: **MySQL (OLTP) → PostgreSQL (raw / staging / marts) with dbt,
 orchestrated by Airflow**.
 
-> **Current status:** the MySQL source and the extraction into the PostgreSQL
-> `raw` layer work. dbt and Airflow are next. Progress is tracked in
+> **Current status:** the MySQL source, the extraction into PostgreSQL `raw`
+> and the dbt `staging` layer work. dbt marts and Airflow are next. Progress is tracked in
 > [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ```
 MySQL (OLTP)  ── scripts/extract_mysql_to_raw.py ──▶  PostgreSQL
 little_lemon_restaurante   (incremental, UpdatedAt)    raw.*  (append-only copy)
-                                                       staging.*, marts.*  (dbt, planned)
+                                                         │ dbt (dbt/)
+                                                         ▼
+                                                       staging.*  (latest version, snake_case)
+                                                       marts.*    (planned)
 ```
 
 ## Data model
@@ -67,6 +70,7 @@ data/                Original course data (.xlsx)
 models/              MySQL Workbench model (.mwb)
 tableau/             Tableau workbook (.twbx)
 screenshots/         ER diagram
+dbt/                 dbt project: staging models, tests and macros
 docker/              Container setup (MySQL and PostgreSQL init scripts)
 docs/                Roadmap and architecture decisions (adr/)
 docker-compose.yml   Local MySQL 8.4 (source) and PostgreSQL 18 (warehouse)
@@ -160,6 +164,19 @@ tests/               Integration tests (pytest.ini configures them)
    synthetic data); a run without changes brings 0 rows. Changes from the
    last 30 seconds wait for the next run (`--lag-seconds`), so transactions
    still in progress are not missed.
+
+7. Build the dbt `staging` layer and run its data tests. Each `stg_*` view
+   keeps the latest version of every row in `raw`, with snake_case names
+   ([ADR-005](docs/adr/005-dbt-core-staging.md)):
+
+   ```bash
+   .venv/bin/dbt build --project-dir dbt --profiles-dir dbt
+   ```
+
+   It creates 14 views in the `staging` schema and runs 51 tests (keys,
+   relationships, accepted values, order totals and a unit test of the
+   deduplication), in about 16 s with the synthetic data. It uses dbt Core
+   v1: dbt v2 does not list PostgreSQL among its adapters yet.
 
 ## Running the tests
 
