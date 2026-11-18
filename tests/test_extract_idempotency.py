@@ -4,7 +4,8 @@ Se prueba que:
   * sin cambios en MySQL, correrlo de nuevo no agrega filas;
   * solo trae lo que cambió, respetando el margen de seguridad;
   * si falla a mitad de una tabla, no queda nada a medias (ni filas ni
-    watermark) y el reintento carga cada fila exactamente una vez.
+    watermark) y el reintento carga cada fila exactamente una vez;
+  * no corren dos extracciones a la vez.
 Las fallas se provocan con constraints CHECK temporales en PostgreSQL, sin
 tocar el código del extractor.
 """
@@ -162,3 +163,16 @@ def test_raw_sin_versiones_duplicadas(mysql, pg):
             f"GROUP BY {clave}, updatedat HAVING COUNT(*) > 1) x"
         ).fetchone()[0]
         assert repetidas == 0, tabla
+
+
+def test_no_corren_dos_extracciones_a_la_vez(mysql, pg):
+    # Simula una extracción en curso tomando el candado desde otra sesión.
+    pg.execute("SELECT pg_advisory_lock(hashtext(%s))", (extractor.CANDADO,))
+    try:
+        with pytest.raises(SystemExit, match="otra extracción en curso"):
+            extraer()
+        for tabla in extractor.TABLAS:
+            assert filas_raw(pg, tabla) == 0, tabla
+    finally:
+        pg.execute("SELECT pg_advisory_unlock(hashtext(%s))", (extractor.CANDADO,))
+    assert extraer() == 0  # liberado el candado, corre normal

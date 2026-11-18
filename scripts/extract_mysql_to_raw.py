@@ -29,6 +29,9 @@ TABLAS = [
 ]
 INICIO = datetime(1970, 1, 1)
 FILAS_POR_LOTE = 50_000
+# Candado de PostgreSQL que impide dos extracciones a la vez: ambas leerían el
+# mismo watermark y la segunda volvería a cargar la ventana de la primera.
+CANDADO = "little_lemon.extract_mysql_to_raw"
 
 
 def columnas_raw(pg, tabla_raw):
@@ -108,6 +111,12 @@ def main(argv=None):
     pg = conectar_postgres()
     pg.autocommit = True  # cada tabla abre su propia transacción explícita
     try:
+        # Candado de sesión: se libera solo al cerrar la conexión, aunque falle.
+        tomado = pg.execute(
+            "SELECT pg_try_advisory_lock(hashtext(%s))", (CANDADO,)
+        ).fetchone()[0]
+        if not tomado:
+            sys.exit("Ya hay otra extracción en curso; no se corre una segunda en paralelo.")
         cursor = mysql.cursor()
         cursor.execute("SELECT NOW(6) - INTERVAL %s SECOND", (args.lag_seconds,))
         hasta = cursor.fetchone()[0]
