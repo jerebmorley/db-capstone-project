@@ -18,8 +18,8 @@ import sys
 import time
 from datetime import date, datetime, timedelta
 
-# Reusa la conexión y los conteos de muestra del verificador.
-from verify_load import CONTEOS_ESPERADOS, conectar
+from db_connections import conectar_mysql
+from verify_load import CONTEOS_ESPERADOS  # conteos de la muestra
 
 FECHA_INICIO = date(2024, 1, 1)
 FECHA_FIN = date(2026, 7, 31)  # los datos de muestra empiezan el 2026-08-01
@@ -316,7 +316,7 @@ def main(argv=None):
     if args.scale <= 0:
         sys.exit("--scale tiene que ser mayor que 0")
 
-    conexion = conectar()
+    conexion = conectar_mysql()
     t0 = time.monotonic()
     print(f"Generando con seed={args.seed} scale={args.scale}")
     try:

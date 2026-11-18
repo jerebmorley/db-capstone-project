@@ -12,12 +12,9 @@ Uso:
 
 import argparse
 import json
-import os
 import sys
 
-import mysql.connector as connector
-
-VARIABLES_REQUERIDAS = ["DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME"]
+from db_connections import conectar_mysql
 
 # Filas esperadas con los datos de muestra (database/sample-data).
 # Con datos sintéticos, los esperados vienen del JSON que escribe el generador.
@@ -52,23 +49,6 @@ LEFT JOIN (
 WHERE o.Quantity <> COALESCE(d.cantidad, 0)
    OR o.TotalCost <> COALESCE(d.total, 0);
 """
-
-
-def conectar():
-    faltantes = [v for v in VARIABLES_REQUERIDAS if not os.environ.get(v)]
-    if faltantes:
-        sys.exit(
-            "Faltan variables de entorno: " + ", ".join(faltantes) + ".\n"
-            "Copiá .env.example a .env, completalo y cargalo con:\n"
-            "  set -a; source .env; set +a"
-        )
-    return connector.connect(
-        host=os.environ["DB_HOST"],
-        port=int(os.environ["DB_PORT"]),
-        user=os.environ["DB_USER"],
-        password=os.environ["DB_PASSWORD"],
-        database=os.environ["DB_NAME"],
-    )
 
 
 def verificar_conteos(cursor, esperados):
@@ -111,7 +91,7 @@ def leer_esperados(argv):
 
 def main(argv=None):
     esperados = leer_esperados(argv)
-    conexion = conectar()
+    conexion = conectar_mysql()
     try:
         cursor = conexion.cursor()
         print("== Conteos de filas ==")
