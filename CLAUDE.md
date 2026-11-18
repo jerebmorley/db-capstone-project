@@ -25,6 +25,9 @@ con IA y entender cada cambio.
 ## Stack y convenciones
 - Python (comentarios breves) y SQL. Configuración por variables de entorno.
 - Docker Compose para todo lo que corra local. Máquina: 16 GB de RAM.
+- Nombres de archivo descriptivos en snake_case (Python/SQL). Los nombres
+  convencionales (README.md, .gitignore, docker-compose.yml, .env.example)
+  no se cambian.
 - Decisiones importantes como ADR cortos en docs/adr/
   (contexto, decisión, consecuencias).
 

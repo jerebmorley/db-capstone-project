@@ -6,7 +6,7 @@ algo falla, para poder usarlo en la terminal, CI o Airflow.
 
 Uso:
     set -a; source .env; set +a
-    python scripts/verify_counts.py
+    python scripts/verify_load.py
 """
 
 import os

@@ -37,8 +37,8 @@ database/
   sample-data/       Data dump (INSERTs only)
   procedures/        Stored procedures on their own (also in the schema dump)
 scripts/
-  file1.py           Python example: connects to MySQL and runs a few queries
-  verify_counts.py   Checks row counts and order totals after loading
+  explore_database.py  Python example: connects to MySQL and runs a few queries
+  verify_load.py     Checks row counts and order totals after loading
   script1-4.sql      Capstone exercises: views, procedures, prepared statements
 data/                Original course data (.xlsx)
 models/              MySQL Workbench model (.mwb)
@@ -61,7 +61,7 @@ docker-compose.yml   Local MySQL 8.4 loaded with schema and data
    ```
 
 2. Start MySQL. On the first start it loads the schema and the data
-   automatically (`docker/mysql/initdb/01-load.sh`), and it is ready when the
+   automatically (`docker/mysql/initdb/01-load-capstone-dump.sh`), and it is ready when the
    container shows as `healthy`:
 
    ```bash
@@ -86,7 +86,7 @@ docker-compose.yml   Local MySQL 8.4 loaded with schema and data
    python3 -m venv .venv
    .venv/bin/pip install mysql-connector-python
    set -a; source .env; set +a
-   .venv/bin/python scripts/file1.py
+   .venv/bin/python scripts/explore_database.py
    ```
 
    If a variable is missing, the script exits with a message listing it.
@@ -96,7 +96,7 @@ docker-compose.yml   Local MySQL 8.4 loaded with schema and data
    It prints `OK`/`FAIL` per check and exits with code 0 only if all pass:
 
    ```bash
-   .venv/bin/python scripts/verify_counts.py
+   .venv/bin/python scripts/verify_load.py
    ```
 
    The expected counts are those of the sample data (100 customers,
