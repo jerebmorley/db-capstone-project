@@ -29,13 +29,26 @@ in sync with `OrderDetails`, and stored procedures for bookings and orders
 
 ![ER diagram](screenshots/final-diagram-er.png)
 
+### Changes since the capstone
+
+The capstone dumps are kept untouched as version 0. Schema changes are
+applied on top of them as numbered migrations in `database/migrations/`:
+
+- **001:** every table gets an `UpdatedAt` column that MySQL updates on each
+  change (indexed on the 5 transactional tables), so the pipeline can extract
+  only what changed. Cancelling no longer deletes rows: `CancelBooking` sets
+  the booking to `'Cancelada'`, and `CancelOrder` adds a `'Cancelado'` event
+  to `OrderDeliveryHistory`. See
+  [ADR-002](docs/adr/002-cancel-by-status-instead-of-delete.md).
+
 ## Repository layout
 
 ```
 database/
-  schema/            Full schema dump: tables, triggers and procedures
-  sample-data/       Data dump (INSERTs only)
-  procedures/        Stored procedures on their own (also in the schema dump)
+  schema/            Capstone schema dump (v0): tables, triggers and procedures
+  sample-data/       Capstone data dump (INSERTs only)
+  procedures/        Capstone stored procedures (v0, also in the schema dump)
+  migrations/        Numbered schema changes applied after the dumps
 scripts/
   explore_database.py  Python example: connects to MySQL and runs a few queries
   verify_load.py     Checks row counts and order totals after loading
@@ -44,8 +57,8 @@ data/                Original course data (.xlsx)
 models/              MySQL Workbench model (.mwb)
 tableau/             Tableau workbook (.twbx)
 screenshots/         ER diagram
-docker/              Container setup (MySQL init script)
-docs/                Roadmap and, later, architecture decisions (ADRs)
+docker/              Container setup (MySQL init scripts)
+docs/                Roadmap and architecture decisions (adr/)
 docker-compose.yml   Local MySQL 8.4 loaded with schema and data
 ```
 
@@ -60,9 +73,10 @@ docker-compose.yml   Local MySQL 8.4 loaded with schema and data
    cp .env.example .env
    ```
 
-2. Start MySQL. On the first start it loads the schema and the data
-   automatically (`docker/mysql/initdb/01-load-capstone-dump.sh`), and it is ready when the
-   container shows as `healthy`:
+2. Start MySQL. On the first start it loads the capstone dumps
+   (`docker/mysql/initdb/01-load-capstone-dump.sh`) and then applies the
+   migrations (`02-apply-migrations.sh`). It is ready when the container
+   shows as `healthy`:
 
    ```bash
    docker compose up -d --wait
@@ -74,7 +88,8 @@ docker-compose.yml   Local MySQL 8.4 loaded with schema and data
    creates them.
 
    The load only runs when the data volume is empty. To reload from scratch
-   (for example after changing the dumps), delete the volume:
+   (for example after changing the dumps or adding a migration), delete the
+   volume:
 
    ```bash
    docker compose down -v
@@ -99,8 +114,9 @@ docker-compose.yml   Local MySQL 8.4 loaded with schema and data
    .venv/bin/python scripts/verify_load.py
    ```
 
-   The expected counts are those of the sample data (100 customers,
-   240 orders, 680 order lines, …).
+   The expected counts are those of the sample data right after loading
+   (100 customers, 240 orders, 680 order lines, …). Calling `CancelOrder`
+   adds a history row, so run it on a fresh load.
 
 ## Known limitations
 

@@ -5,7 +5,7 @@
 - [x] 2. README básico
 - [x] 3. docker-compose con MySQL (schema + datos)
 - [x] 4. Script de verificación de conteos (100 / 240 / 680)
-- [ ] 5. Agregar updated_at y soft delete (ADR-002)
+- [x] 5. Agregar updated_at y soft delete (ADR-002)
 - [ ] 6. Generador sintético (2-5 M de filas, semilla fija)
 - [ ] 7. PostgreSQL + extractor incremental MySQL → raw
 - [ ] 8. Idempotencia con test
@@ -17,8 +17,8 @@
 
 ## Problemas conocidos del capstone
 - ~~Credenciales en Scripts/file1.py~~ (resuelto en PR #2)
-- Sin updated_at en ninguna tabla (bloquea la carga incremental)
-- CancelOrder y CancelBooking hacen DELETE físico
+- ~~Sin updated_at en ninguna tabla (bloquea la carga incremental)~~ (resuelto en migración 001)
+- ~~CancelOrder y CancelBooking hacen DELETE físico~~ (resuelto en migración 001, ver ADR-002)
 - Orders.Quantity y TotalCost son desnormalizados (triggers)
 - DEFINER=jeremias@localhost en triggers y procedimientos
 - Datos personales: Customers.Email/ContactNumber, Staff.Salary
