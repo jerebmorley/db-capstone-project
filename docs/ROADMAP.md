@@ -11,7 +11,7 @@
 - [x] 8. Idempotencia con test
 - [x] 9. dbt staging
 - [x] 10. dbt marts en estrella + SCD2
-- [ ] 11. Airflow
+- [x] 11. Airflow
 - [ ] 12. Medición con EXPLAIN ANALYZE
 - [ ] 13. Dashboard y cierre
 

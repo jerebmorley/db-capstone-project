@@ -8,11 +8,13 @@ I am turning it, in small increments, into a data engineering portfolio
 project: **MySQL (OLTP) → PostgreSQL (raw / staging / marts) with dbt,
 orchestrated by Airflow**.
 
-> **Current status:** the MySQL source, the extraction into PostgreSQL `raw`
-> and the dbt `staging` and `marts` layers work. Airflow is next. Progress is tracked in
-> [docs/ROADMAP.md](docs/ROADMAP.md).
+> **Current status:** the full pipeline works and runs hourly in Airflow:
+> MySQL source, extraction into PostgreSQL `raw`, and the dbt `staging` and
+> `marts` layers. Progress is tracked in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ```
+Airflow DAG little_lemon_elt (hourly):  extract_mysql_to_raw  ──▶  dbt_build
+
 MySQL (OLTP)  ── scripts/extract_mysql_to_raw.py ──▶  PostgreSQL
 little_lemon_restaurante   (incremental, UpdatedAt)    raw.*  (append-only copy)
                                                          │ dbt (dbt/)
@@ -71,8 +73,9 @@ data/                Original course data (.xlsx)
 models/              MySQL Workbench model (.mwb)
 tableau/             Tableau workbook (.twbx)
 screenshots/         ER diagram
-dbt/                 dbt project: staging models, tests and macros
-docker/              Container setup (MySQL and PostgreSQL init scripts)
+dags/                Airflow DAG that runs the pipeline
+dbt/                 dbt project: staging, intermediate and marts models, tests and macros
+docker/              Container setup (MySQL and PostgreSQL init scripts, Airflow image)
 docs/                Roadmap and architecture decisions (adr/)
 docker-compose.yml   Local MySQL 8.4 (source) and PostgreSQL 18 (warehouse)
 requirements.txt     Pinned Python dependencies (requirements-dev.txt adds pytest)
@@ -207,6 +210,30 @@ tests/               Integration tests (pytest.ini configures them)
    GROUP BY 1, 2, 3
    ORDER BY 1, 2, 3;
    ```
+
+## Running the pipeline with Airflow
+
+Airflow 3.4 runs the pipeline every hour: `extract_mysql_to_raw` (2 retries)
+and then `dbt_build` (1 retry). It uses `LocalExecutor` and lives in the
+`airflow` Compose profile, so plain `docker compose up` does not start it
+([ADR-007](docs/adr/007-airflow-local-executor.md)).
+
+1. Set `AIRFLOW_ADMIN_USER`, `AIRFLOW_ADMIN_PASSWORD`, `AIRFLOW_DB_PASSWORD`
+   and `AIRFLOW_JWT_SECRET` in your `.env` (see `.env.example`).
+2. Build the image (Airflow plus the pipeline in its own virtualenv) and
+   start everything (about 1 minute the first time):
+
+   ```bash
+   docker compose --profile airflow up -d --build --wait
+   ```
+
+3. Open http://localhost:8080, log in with your `AIRFLOW_ADMIN_*` user and
+   unpause the `little_lemon_elt` DAG. It starts paused and does not backfill
+   past hours.
+
+Airflow uses about 850 MB of RAM. Stop it with
+`docker compose --profile airflow stop`. The extractor also takes a
+PostgreSQL advisory lock, so a manual run never overlaps with the DAG.
 
 ## Running the tests
 
