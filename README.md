@@ -52,6 +52,7 @@ database/
 scripts/
   explore_database.py  Python example: connects to MySQL and runs a few queries
   verify_load.py     Checks row counts and order totals after loading
+  generate_synthetic_data.py  Adds ~4.4 M reproducible synthetic rows
   script1-4.sql      Capstone exercises: views, procedures, prepared statements
 data/                Original course data (.xlsx)
 models/              MySQL Workbench model (.mwb)
@@ -117,6 +118,22 @@ docker-compose.yml   Local MySQL 8.4 loaded with schema and data
    The expected counts are those of the sample data right after loading
    (100 customers, 240 orders, 680 order lines, …). Calling `CancelOrder`
    adds a history row, so run it on a fresh load.
+
+5. Optional: generate synthetic data. On a fresh load, this adds customers,
+   bookings and orders from 2024-01-01 to 2026-07-31. The same `--seed` and
+   `--scale` always produce exactly the same rows
+   ([ADR-003](docs/adr/003-synthetic-data-generator.md)):
+
+   ```bash
+   .venv/bin/python scripts/generate_synthetic_data.py --seed 42 --scale 1.0
+   .venv/bin/python scripts/verify_load.py --expected generated/expected_counts.json
+   ```
+
+   With `--scale 1.0` it inserts about 4.4 M rows (50 k customers, 56 k
+   bookings, 501 k orders, 1.4 M order lines, 2.3 M status events) in about
+   3 minutes, using about 1.3 GB of Docker volume. Use `--scale 0.01` for a
+   quick run. The generator refuses to run twice on the same database; to
+   start over, recreate it with `docker compose down -v`.
 
 ## Known limitations
 

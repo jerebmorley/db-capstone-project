@@ -6,9 +6,12 @@ algo falla, para poder usarlo en la terminal, CI o Airflow.
 
 Uso:
     set -a; source .env; set +a
-    python scripts/verify_load.py
+    python scripts/verify_load.py                      # datos de muestra
+    python scripts/verify_load.py --expected generated/expected_counts.json
 """
 
+import argparse
+import json
 import os
 import sys
 
@@ -17,7 +20,7 @@ import mysql.connector as connector
 VARIABLES_REQUERIDAS = ["DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME"]
 
 # Filas esperadas con los datos de muestra (database/sample-data).
-# Ajustar cuando el generador sintético (incremento 6) cambie los volúmenes.
+# Con datos sintéticos, los esperados vienen del JSON que escribe el generador.
 CONTEOS_ESPERADOS = {
     "Cuisines": 4,
     "Customers": 100,
@@ -68,17 +71,19 @@ def conectar():
     )
 
 
-def verificar_conteos(cursor):
+def verificar_conteos(cursor, esperados):
     """Devuelve la cantidad de tablas con conteo distinto al esperado."""
     fallas = 0
-    for tabla, esperado in CONTEOS_ESPERADOS.items():
-        # El nombre viene del diccionario de arriba, no de afuera: es seguro.
+    for tabla, esperado in esperados.items():
+        if tabla not in CONTEOS_ESPERADOS:
+            sys.exit(f"Tabla desconocida en los conteos esperados: {tabla}")
+        # Solo se aceptan nombres de CONTEOS_ESPERADOS (chequeado arriba): es seguro.
         cursor.execute(f"SELECT COUNT(*) FROM `{tabla}`")
         obtenido = cursor.fetchone()[0]
         estado = "OK  " if obtenido == esperado else "FAIL"
         if obtenido != esperado:
             fallas += 1
-        print(f"{estado} {tabla:<22} esperado={esperado:<5} obtenido={obtenido}")
+        print(f"{estado} {tabla:<22} esperado={esperado:<8} obtenido={obtenido}")
     return fallas
 
 
@@ -91,18 +96,32 @@ def verificar_totales(cursor):
     return 0 if descuadrados == 0 else 1
 
 
-def main():
+def leer_esperados(argv):
+    parser = argparse.ArgumentParser(description="Verifica la carga de Little Lemon.")
+    parser.add_argument(
+        "--expected",
+        help="JSON con conteos esperados (lo escribe generate_synthetic_data.py)",
+    )
+    args = parser.parse_args(argv)
+    if not args.expected:
+        return CONTEOS_ESPERADOS
+    with open(args.expected, encoding="utf-8") as f:
+        return json.load(f)["counts"]
+
+
+def main(argv=None):
+    esperados = leer_esperados(argv)
     conexion = conectar()
     try:
         cursor = conexion.cursor()
         print("== Conteos de filas ==")
-        fallas = verificar_conteos(cursor)
+        fallas = verificar_conteos(cursor, esperados)
         print("\n== Consistencia de totales ==")
         fallas += verificar_totales(cursor)
     finally:
         conexion.close()
 
-    total = len(CONTEOS_ESPERADOS) + 1
+    total = len(esperados) + 1
     print(f"\n{total - fallas}/{total} chequeos OK")
     return 1 if fallas else 0
 

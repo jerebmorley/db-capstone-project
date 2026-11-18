@@ -21,3 +21,6 @@ Thumbs.db
 # Dumps y logs locales
 *.log
 *.dump
+
+# Salidas locales de scripts (conteos esperados del generador, etc.)
+generated/
