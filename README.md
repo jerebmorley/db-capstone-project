@@ -43,29 +43,40 @@ data/                Original course data (.xlsx)
 models/              MySQL Workbench model (.mwb)
 tableau/             Tableau workbook (.twbx)
 screenshots/         ER diagram
+docker/              Container setup (MySQL init script)
 docs/                Roadmap and, later, architecture decisions (ADRs)
+docker-compose.yml   Local MySQL 8.4 loaded with schema and data
 ```
 
-## Running it locally (temporary)
+## Running it locally
 
-These are manual steps until increment 3 adds Docker Compose.
+**Requirements:** Docker with Compose, and Python 3.
 
-**Requirements:** MySQL 8.4 and Python 3.
-
-1. Load the schema, then the data. The schema dump has
-   `DEFINER=jeremias@localhost` on its triggers and procedures, which fails
-   if that user does not exist on your server, so strip it while loading:
-
-   ```bash
-   sed -E 's/DEFINER=`[^`]+`@`[^`]+`//g' database/schema/little_lemon_schema.sql | mysql -u <your_user> -p
-   mysql -u <your_user> -p little_lemon_restaurante < database/sample-data/little_lemon_data.sql
-   ```
-
-2. Configure the connection. Copy the template and fill in your values
-   (set `DB_NAME=little_lemon_restaurante`). `.env` is git-ignored.
+1. Configure the connection. Copy the template and fill in your own user and
+   passwords. `.env` is git-ignored.
 
    ```bash
    cp .env.example .env
+   ```
+
+2. Start MySQL. On the first start it loads the schema and the data
+   automatically (`docker/mysql/initdb/01-load.sh`), and it is ready when the
+   container shows as `healthy`:
+
+   ```bash
+   docker compose up -d --wait
+   ```
+
+   MySQL listens on `127.0.0.1:3307` (not 3306, so it does not clash with a
+   local MySQL). The loader strips the `DEFINER=jeremias@localhost` clauses
+   from the schema dump, so triggers and procedures belong to the user that
+   creates them.
+
+   The load only runs when the data volume is empty. To reload from scratch
+   (for example after changing the dumps), delete the volume:
+
+   ```bash
+   docker compose down -v
    ```
 
 3. Install the driver and run the example script:
