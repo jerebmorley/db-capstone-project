@@ -8,7 +8,7 @@
 - [x] 5. Agregar updated_at y soft delete (ADR-002)
 - [x] 6. Generador sintético (2-5 M de filas, semilla fija)
 - [x] 7. PostgreSQL + extractor incremental MySQL → raw
-- [ ] 8. Idempotencia con test
+- [x] 8. Idempotencia con test
 - [ ] 9. dbt staging
 - [ ] 10. dbt marts en estrella + SCD2
 - [ ] 11. Airflow

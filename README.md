@@ -70,7 +70,8 @@ screenshots/         ER diagram
 docker/              Container setup (MySQL and PostgreSQL init scripts)
 docs/                Roadmap and architecture decisions (adr/)
 docker-compose.yml   Local MySQL 8.4 (source) and PostgreSQL 18 (warehouse)
-requirements.txt     Pinned Python dependencies
+requirements.txt     Pinned Python dependencies (requirements-dev.txt adds pytest)
+tests/               Integration tests (pytest.ini configures them)
 ```
 
 ## Running it locally
@@ -159,6 +160,24 @@ requirements.txt     Pinned Python dependencies
    synthetic data); a run without changes brings 0 rows. Changes from the
    last 30 seconds wait for the next run (`--lag-seconds`), so transactions
    still in progress are not missed.
+
+## Running the tests
+
+The tests check that the extractor is idempotent
+([ADR-004](docs/adr/004-incremental-extraction-to-raw.md)): rerunning it adds
+nothing, it only brings changed rows, and if it fails in the middle of a
+table nothing is left half-loaded and the retry loads each row exactly once.
+Failures are simulated with temporary `CHECK` constraints in PostgreSQL.
+
+```bash
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/pytest -v
+```
+
+They run against real MySQL and PostgreSQL in their own Docker project
+(`little-lemon-test`, ports 3309 and 5436) built from the fake values in
+`.env.example`, which is created at the start and deleted at the end (about
+15 s). They never touch your databases or read your `.env`.
 
 ## Known limitations
 
