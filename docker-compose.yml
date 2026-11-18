@@ -1,4 +1,4 @@
-# MySQL de Little Lemon (OLTP) cargado con schema y datos.
+# MySQL de Little Lemon (OLTP) cargado con schema y datos, y PostgreSQL (warehouse).
 # Uso: cp .env.example .env  →  completar  →  docker compose up -d
 services:
   mysql:
@@ -24,5 +24,29 @@ services:
       retries: 30
       start_period: 30s
 
+  postgres:
+    # Warehouse analítico: schemas raw (extractor) y, más adelante, dbt.
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${PG_DB:?Falta PG_DB en .env}
+      POSTGRES_USER: ${PG_USER:?Falta PG_USER en .env}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?Falta PG_PASSWORD en .env}
+    ports:
+      # 5434 para no chocar con otros PostgreSQL locales (5432, 5433).
+      - "127.0.0.1:${PG_PORT:-5434}:5432"
+    volumes:
+      # Desde la imagen 18 los datos van en /var/lib/postgresql/18/docker:
+      # se monta el directorio padre, no el viejo /var/lib/postgresql/data.
+      - postgres_data:/var/lib/postgresql
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Por TCP: durante la inicialización solo escucha por socket local.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
 volumes:
   mysql_data:
+  postgres_data:
