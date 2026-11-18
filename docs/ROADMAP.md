@@ -10,7 +10,7 @@
 - [x] 7. PostgreSQL + extractor incremental MySQL → raw
 - [x] 8. Idempotencia con test
 - [x] 9. dbt staging
-- [ ] 10. dbt marts en estrella + SCD2
+- [x] 10. dbt marts en estrella + SCD2
 - [ ] 11. Airflow
 - [ ] 12. Medición con EXPLAIN ANALYZE
 - [ ] 13. Dashboard y cierre

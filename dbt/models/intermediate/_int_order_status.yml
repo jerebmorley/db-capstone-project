@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: int_order_status
+    description: Una fila por pedido con su estado final y si se canceló.
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+      - name: final_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [Pendiente, En preparacion, Listo, En camino, Entregado, Cancelado]

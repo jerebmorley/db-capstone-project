@@ -1,0 +1,112 @@
+version: 2
+
+models:
+  - name: fct_orders
+    description: Pedidos, una fila por pedido.
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+      - name: customer_key
+        description: Versión del cliente vigente al hacer el pedido.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_key
+      - name: date_key
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: staff_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_staff')
+                field: staff_id
+      - name: menu_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_menus')
+                field: menu_id
+      - name: channel
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [dine_in, delivery]
+
+  - name: fct_order_lines
+    description: Líneas de pedido, una fila por producto pedido.
+    columns:
+      - name: order_detail_id
+        data_tests: [unique, not_null]
+      - name: order_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('fct_orders')
+                field: order_id
+      - name: product_key
+        description: Versión del producto vigente al hacer el pedido.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_menu_products')
+                field: product_key
+      - name: date_key
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+
+  - name: fct_reservations
+    description: Reservas, una fila por reserva.
+    columns:
+      - name: reservation_id
+        data_tests: [unique, not_null]
+      - name: customer_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_key
+      - name: table_number
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_restaurant_tables')
+                field: table_number
+      - name: date_key
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+
+unit_tests:
+  - name: fct_orders_apunta_a_la_version_vigente_del_cliente
+    description: >
+      Con dos versiones de un cliente (cambio el 2026-02-01), un pedido de
+      enero toma la versión vieja y uno de marzo la nueva.
+    model: fct_orders
+    given:
+      - input: ref('stg_orders')
+        rows:
+          - {order_id: 10, customer_id: 1, ordered_at: "2026-01-15 12:00:00", quantity: 1, total_cost: 10}
+          - {order_id: 11, customer_id: 1, ordered_at: "2026-03-15 12:00:00", quantity: 1, total_cost: 10}
+      - input: ref('int_order_status')
+        rows: []
+      - input: ref('dim_customers')
+        rows:
+          - {customer_key: vieja, customer_id: 1, valid_from: "1900-01-01 00:00:00", valid_to: "2026-02-01 00:00:00"}
+          - {customer_key: nueva, customer_id: 1, valid_from: "2026-02-01 00:00:00", valid_to: "9999-12-31 00:00:00"}
+    expect:
+      rows:
+        - {order_id: 10, customer_key: vieja}
+        - {order_id: 11, customer_key: nueva}

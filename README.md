@@ -9,7 +9,7 @@ project: **MySQL (OLTP) → PostgreSQL (raw / staging / marts) with dbt,
 orchestrated by Airflow**.
 
 > **Current status:** the MySQL source, the extraction into PostgreSQL `raw`
-> and the dbt `staging` layer work. dbt marts and Airflow are next. Progress is tracked in
+> and the dbt `staging` and `marts` layers work. Airflow is next. Progress is tracked in
 > [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ```
@@ -17,8 +17,9 @@ MySQL (OLTP)  ── scripts/extract_mysql_to_raw.py ──▶  PostgreSQL
 little_lemon_restaurante   (incremental, UpdatedAt)    raw.*  (append-only copy)
                                                          │ dbt (dbt/)
                                                          ▼
-                                                       staging.*  (latest version, snake_case)
-                                                       marts.*    (planned)
+                                                       staging.*       (latest version, snake_case)
+                                                       intermediate.*  (SCD2 versions, order status)
+                                                       marts.*         (star schema)
 ```
 
 ## Data model
@@ -177,6 +178,35 @@ tests/               Integration tests (pytest.ini configures them)
    relationships, accepted values, order totals and a unit test of the
    deduplication), in about 16 s with the synthetic data. It uses dbt Core
    v1: dbt v2 does not list PostgreSQL among its adapters yet.
+
+   The same command builds the `marts` star schema
+   ([ADR-006](docs/adr/006-star-schema-and-scd2-from-raw.md)):
+
+   ```
+                       dim_date
+                          │
+   dim_customers ── fct_orders ──── dim_staff, dim_menus
+          │               │
+          │        fct_order_lines ── dim_menu_products
+          │
+          └──── fct_reservations ── dim_restaurant_tables
+   ```
+
+   `dim_customers` and `dim_menu_products` are SCD2: one row per version,
+   built from the versions kept in `raw`, and every fact points to the
+   version that was valid when the event happened. With the synthetic data,
+   the full `dbt build` (122 tests) takes about 34 s. Example:
+
+   ```sql
+   SELECT d.year, d.quarter, f.channel,
+          COUNT(*) AS orders,
+          SUM(f.total_cost) FILTER (WHERE NOT f.is_cancelled) AS revenue,
+          ROUND(100.0 * AVG(f.is_cancelled::int), 1) AS cancel_pct
+   FROM marts.fct_orders f
+   JOIN marts.dim_date d USING (date_key)
+   GROUP BY 1, 2, 3
+   ORDER BY 1, 2, 3;
+   ```
 
 ## Running the tests
 
