@@ -45,6 +45,8 @@ x-airflow-common: &airflow-common
 services:
   mysql:
     image: mysql:8.4
+    # Vuelve solo si se reinicia Docker o la máquina (no si lo frenás vos).
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Falta MYSQL_ROOT_PASSWORD en .env}
       MYSQL_DATABASE: ${DB_NAME:?Falta DB_NAME en .env}
@@ -69,6 +71,8 @@ services:
   postgres:
     # Warehouse analítico: schemas raw (extractor) y, más adelante, dbt.
     image: postgres:18
+    # Vuelve solo si se reinicia Docker o la máquina (no si lo frenás vos).
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${PG_DB:?Falta PG_DB en .env}
       POSTGRES_USER: ${PG_USER:?Falta PG_USER en .env}
@@ -93,6 +97,8 @@ services:
     # Metadatos de Airflow (DAGs, corridas, usuarios), separados del warehouse.
     image: postgres:18
     profiles: ["airflow"]
+    # Vuelve solo si se reinicia Docker o la máquina (no si lo frenás vos).
+    restart: unless-stopped
     environment:
       POSTGRES_DB: airflow
       POSTGRES_USER: airflow
@@ -120,6 +126,8 @@ services:
     # Interfaz web y API.
     <<: *airflow-common
     command: api-server
+    # Vuelve solo si se reinicia Docker o la máquina (no si lo frenás vos).
+    restart: unless-stopped
     ports:
       - "127.0.0.1:${AIRFLOW_PORT:-8080}:8080"
     healthcheck:
@@ -137,6 +145,8 @@ services:
     # Decide qué correr y, con LocalExecutor, ejecuta las tareas él mismo.
     <<: *airflow-common
     command: scheduler
+    # Vuelve solo si se reinicia Docker o la máquina (no si lo frenás vos).
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname \"$${HOSTNAME}\""]
       interval: 30s
@@ -156,6 +166,8 @@ services:
     # Lee y valida los archivos de dags/.
     <<: *airflow-common
     command: dag-processor
+    # Vuelve solo si se reinicia Docker o la máquina (no si lo frenás vos).
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "airflow jobs check --job-type DagProcessorJob --hostname \"$${HOSTNAME}\""]
       interval: 30s
@@ -174,6 +186,8 @@ services:
       dockerfile: docker/dashboard/Dockerfile
     image: little-lemon-dashboard:1.0
     profiles: ["dashboard"]
+    # Vuelve solo si se reinicia Docker o la máquina (no si lo frenás vos).
+    restart: unless-stopped
     environment:
       PG_HOST: postgres
       PG_PORT: "5432"
