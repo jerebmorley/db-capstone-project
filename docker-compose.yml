@@ -2,6 +2,7 @@
 # y, en el profile "airflow", el orquestador.
 # Uso: cp .env.example .env  →  completar  →  docker compose up -d
 #      Airflow:  docker compose --profile airflow up -d --build
+#      Dashboard: docker compose --profile dashboard up -d --build
 
 # Configuración común de los servicios de Airflow (ver docs/adr/007).
 x-airflow-common: &airflow-common
@@ -165,6 +166,31 @@ services:
       <<: *airflow-depends-on
       airflow-init:
         condition: service_completed_successfully
+
+  dashboard:
+    # Dashboard de Streamlit: solo lee el schema marts del warehouse.
+    build:
+      context: .
+      dockerfile: docker/dashboard/Dockerfile
+    image: little-lemon-dashboard:1.0
+    profiles: ["dashboard"]
+    environment:
+      PG_HOST: postgres
+      PG_PORT: "5432"
+      PG_DB: ${PG_DB}
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+    ports:
+      - "127.0.0.1:${DASHBOARD_PORT:-8501}:8501"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   mysql_data:

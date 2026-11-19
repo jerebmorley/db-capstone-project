@@ -1,0 +1,11 @@
+# Configuración de Streamlit para el dashboard (dashboard/app.py).
+[browser]
+# Streamlit envía estadísticas de uso por defecto: se desactivan.
+gatherUsageStats = false
+
+[server]
+headless = true
+
+[client]
+# Sin el botón "Deploy" ni el menú de desarrollo.
+toolbarMode = "viewer"
